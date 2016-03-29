@@ -27,7 +27,7 @@ optionsParser = Options
                  <> help "Path to the directory containing migrations.")
 
 getOptions :: IO Options
-getOptions = execParser $ info optionsParser $
+getOptions = execParser $ info (helper <*> optionsParser) $
   fullDesc
   <> progDesc "Migrator for PostgreSQL databases with support for rollbacks"
   <> footer "This program is licensed under the BSD-3 license."
