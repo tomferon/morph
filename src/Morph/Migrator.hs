@@ -7,7 +7,6 @@ module Morph.Migrator
   ( migrate
   ) where
 
-import Control.Applicative
 import Control.Monad
 
 import Data.List
@@ -25,8 +24,8 @@ import Database.PostgreSQL.Simple.FromRow
 data MigrationType = Full | Rollback
 
 type family MigrationSQL (a :: MigrationType) :: * where
-  MigrationSQL Full     = (Query, String)
-  MigrationSQL Rollback = Query
+  MigrationSQL 'Full     = (Query, String)
+  MigrationSQL 'Rollback = Query
 
 data Migration :: MigrationType -> * where
   Migration ::
@@ -34,7 +33,7 @@ data Migration :: MigrationType -> * where
     , migrationSQL        :: MigrationSQL a
     } -> Migration a
 
-instance FromRow (Migration Rollback) where
+instance FromRow (Migration 'Rollback) where
   fromRow = Migration <$> field <*> fmap fromString field
 
 createMigrationTable :: Connection -> IO ()
@@ -44,10 +43,10 @@ createMigrationTable conn = void $ execute_ conn
   \  rollback_sql text CHECK (rollback_sql <> '')\
   \);"
 
-listDone :: Connection -> IO [Migration Rollback]
+listDone :: Connection -> IO [Migration 'Rollback]
 listDone = flip query_ "SELECT id, rollback_sql FROM migrations ORDER BY id ASC"
 
-listGoals :: FilePath -> IO [Migration Full]
+listGoals :: FilePath -> IO [Migration 'Full]
 listGoals dir = do
     allNames <- sort <$> getDirectoryContents dir
     let upNames     = filter (".up.sql"   `isSuffixOf`) allNames
@@ -64,7 +63,7 @@ listGoals dir = do
 
   where
     extractIdentifier :: FilePath -> String
-    extractIdentifier = takeWhile (`elem` "0123456789")
+    extractIdentifier = takeWhile (`elem` ("0123456789" :: String))
 
     readMigrationFile :: FilePath -> IO Query
     readMigrationFile path = do
@@ -79,13 +78,13 @@ listGoals dir = do
           <> fromString identifier <> "';"
         Just path -> readFile $ dir </> path
 
-rollbackMigration :: Connection -> Migration Rollback -> IO ()
+rollbackMigration :: Connection -> Migration 'Rollback -> IO ()
 rollbackMigration conn migration = do
   void $ execute_ conn $ migrationSQL migration
   void $ execute conn "DELETE FROM migrations WHERE id = ?" $
     Only $ migrationIdentifier migration
 
-doMigration :: Connection -> Migration Full -> IO ()
+doMigration :: Connection -> Migration 'Full -> IO ()
 doMigration conn migration = do
   let (up, down) = migrationSQL migration
   void $ execute_ conn up

@@ -3,7 +3,6 @@ module Morph.Config
   , withConnection
   ) where
 
-import           Control.Applicative
 import           Control.Exception
 
 import           Data.Aeson

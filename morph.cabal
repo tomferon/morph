@@ -24,7 +24,7 @@ library
                        Morph.Migrator
                        Morph.Options
 
-  build-depends:       base >=4.7 && <5
+  build-depends:       base >=4.8 && <4.9
                      , optparse-applicative ==0.12.*
                      , aeson
                      , postgresql-simple
@@ -38,5 +38,5 @@ executable morph
   hs-source-dirs:      .
   ghc-options:         -Wall
   default-language:    Haskell2010
-  build-depends:       base >=4.7 && <5
+  build-depends:       base >=4.8 && <4.9
                      , morph
