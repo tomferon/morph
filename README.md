@@ -42,17 +42,15 @@ For example, you could have the following files:
 # Config file
 
 Morph reads the database connection information from a config file. This is
-intended to be the same file you use for your application. It only supports JSON
-at the moment. An object (potentially nested, see options) needs to be available
-with the following structure:
+intended to be the same file you use for your application. It supports YAML and
+JSON at the moment. An object (potentially nested, see options) needs to be
+available with the following structure:
 
-    {
-      "user": "_postgresql",
-      "password": "",
-      "host": "127.0.0.1",
-      "port": 5432,
-      "name": "my_database"
-    }
+    user: _postgresql
+    password: ""
+    host: 127.0.0.1
+    port: 5432
+    name: my_database
 
 # Options
 

@@ -8,16 +8,17 @@ import qualified Data.Text as T
 import           Options.Applicative
 
 data Options = Options
-  { optsConfigFile          :: FilePath
-  , optsJSONPath            :: [T.Text]
+  { optsConfigFile          :: Maybe FilePath
+  , optsKeysPath            :: [T.Text]
   , optsMigrationsDirectory :: FilePath
+  , optsJSONConfig          :: Bool
   }
 
 optionsParser :: Parser Options
 optionsParser = Options
-  <$> strOption (short 'c' <> long "config" <> metavar "PATH"
-                 <> showDefault <> value "config.json"
-                 <> help "Path to the config file.")
+  <$> option (Just <$> str)
+             (short 'c' <> long "config" <> metavar "PATH"
+              <> value Nothing <> help "Path to the config file.")
   <*> option ((T.splitOn "." . T.pack) <$> str)
              (short 'p' <> long "path" <> metavar "KEY1[.KEY2[...]]"
               <> value [] <> help "The keys to traverse in the JSON to find\
@@ -25,6 +26,8 @@ optionsParser = Options
   <*> strOption (short 'd' <> long "dir" <> metavar "PATH"
                  <> showDefault <> value "migrations"
                  <> help "Path to the directory containing migrations.")
+  <*> flag False True (short 'j' <> long "json"
+                       <> help "Read config file as JSON.")
 
 getOptions :: IO Options
 getOptions = execParser $ info (helper <*> optionsParser) $

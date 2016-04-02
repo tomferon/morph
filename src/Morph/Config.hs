@@ -5,8 +5,10 @@ module Morph.Config
 
 import           Control.Exception
 
-import           Data.Aeson
-import           Data.Aeson.Types hiding (Options)
+import           Data.Maybe
+import qualified Data.Aeson                 as J
+import qualified Data.Aeson.Types           as J hiding (Options)
+import qualified Data.Yaml                  as Y
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import qualified Data.Text                  as T
 
@@ -25,27 +27,40 @@ data Config = Config
   , configName     :: String
   }
 
-instance FromJSON Config where
-  parseJSON = withObject "Config" $ \obj -> Config
-    <$> obj .: "user"
-    <*> obj .: "password"
-    <*> obj .: "host"
-    <*> obj .: "port"
-    <*> obj .: "name"
+instance J.FromJSON Config where
+  parseJSON = J.withObject "Config" $ \obj -> Config
+    <$> obj J..: "user"
+    <*> obj J..: "password"
+    <*> obj J..: "host"
+    <*> obj J..: "port"
+    <*> obj J..: "name"
 
-parseConfig :: [T.Text] -> Value -> Parser Config
-parseConfig [] = parseJSON
-parseConfig (key : keys) = withObject "Parent object" $ \obj -> do
-  val <- obj .: key
-  parseConfig keys val
+parseJSONConfig :: [T.Text] -> J.Value -> J.Parser Config
+parseJSONConfig [] = J.parseJSON
+parseJSONConfig (key : keys) = J.withObject "Parent object" $ \obj -> do
+  val <- obj J..: key
+  parseJSONConfig keys val
+
+parseYAMLConfig :: [T.Text] -> Y.Value -> Y.Parser Config
+parseYAMLConfig [] val = Y.parseJSON val
+parseYAMLConfig (key : keys) (Y.Object obj) = do
+  val <- obj Y..: key
+  parseYAMLConfig keys val
+parseYAMLConfig _ _ = fail "Object expected"
 
 readConfigOrDie :: Options -> IO Config
 readConfigOrDie opts = do
-  configJSON <- BSL.readFile $ optsConfigFile opts
+  contents <- BSL.readFile $
+    fromMaybe (if optsJSONConfig opts then "config.json" else "config.yml")
+              (optsConfigFile opts)
 
-  let eConfig = do
-        val <- eitherDecode configJSON
-        parseEither (parseConfig (optsJSONPath opts)) val
+  let eConfig
+        | optsJSONConfig opts = do
+            val <- J.eitherDecode contents
+            J.parseEither (parseJSONConfig (optsKeysPath opts)) val
+        | otherwise = do
+            val <- Y.decodeEither $ BSL.toStrict contents
+            Y.parseEither (parseYAMLConfig (optsKeysPath opts)) val
 
   case eConfig of
     Right config -> return config
