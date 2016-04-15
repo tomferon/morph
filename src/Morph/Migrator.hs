@@ -10,11 +10,13 @@ module Morph.Migrator
 import Control.Monad
 
 import Data.List
+import Data.Maybe
 import Data.Monoid
 import Data.String
 
-import System.FilePath
 import System.Directory
+import System.FilePath
+import System.IO
 
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
@@ -33,9 +35,6 @@ data Migration :: MigrationType -> * where
     , migrationSQL        :: MigrationSQL a
     } -> Migration a
 
-instance FromRow (Migration 'Rollback) where
-  fromRow = Migration <$> field <*> fmap fromString field
-
 createMigrationTable :: Connection -> IO ()
 createMigrationTable conn = void $ execute_ conn
   "CREATE TABLE IF NOT EXISTS migrations (\
@@ -44,7 +43,12 @@ createMigrationTable conn = void $ execute_ conn
   \);"
 
 listDone :: Connection -> IO [Migration 'Rollback]
-listDone = flip query_ "SELECT id, rollback_sql FROM migrations ORDER BY id ASC"
+listDone conn = do
+  pairs <- query_ conn "SELECT id, rollback_sql FROM migrations ORDER BY id ASC"
+  return $ flip map pairs $ \(identifier, mSQL) -> Migration
+    { migrationIdentifier = identifier
+    , migrationSQL        = maybe "" fromString mSQL
+    }
 
 listGoals :: FilePath -> IO [Migration 'Full]
 listGoals dir = do
@@ -80,12 +84,16 @@ listGoals dir = do
 
 rollbackMigration :: Connection -> Migration 'Rollback -> IO ()
 rollbackMigration conn migration = do
+  hPutStrLn stderr $
+    "Rollbacking migration " ++ migrationIdentifier migration ++ " ..."
   void $ execute_ conn $ migrationSQL migration
   void $ execute conn "DELETE FROM migrations WHERE id = ?" $
     Only $ migrationIdentifier migration
 
 doMigration :: Connection -> Migration 'Full -> IO ()
 doMigration conn migration = do
+  hPutStrLn stderr $
+    "Running migration " ++ migrationIdentifier migration ++ " ..."
   let (up, down) = migrationSQL migration
   void $ execute_ conn up
   void $ execute conn "INSERT INTO migrations (id, rollback_sql) VALUES (?, ?)"
