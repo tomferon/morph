@@ -20,18 +20,18 @@ import           Database.PostgreSQL.Simple
 import           Morph.Options
 
 data Config = Config
-  { configUser     :: String
+  { configUsername :: String
   , configPassword :: String
-  , configHost     :: String
+  , configHostname :: String
   , configPort     :: Integer
   , configName     :: String
   }
 
 instance J.FromJSON Config where
   parseJSON = J.withObject "Config" $ \obj -> Config
-    <$> obj J..: "user"
+    <$> obj J..: "username"
     <*> obj J..: "password"
-    <*> obj J..: "host"
+    <*> obj J..: "hostname"
     <*> obj J..: "port"
     <*> obj J..: "name"
 
@@ -70,8 +70,8 @@ readConfigOrDie opts = do
 
 createConn :: Config -> IO Connection
 createConn config = connect ConnectInfo
-  { connectHost     = configHost     config
-  , connectUser     = configUser     config
+  { connectHost     = configHostname config
+  , connectUser     = configUsername config
   , connectPassword = configPassword config
   , connectDatabase = configName     config
   , connectPort     = fromInteger $ configPort config
