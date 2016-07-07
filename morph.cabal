@@ -16,7 +16,7 @@ cabal-version:         >=1.10
 source-repository head
   type:                darcs
   location:            http://darcs.redspline.com/morph
-  tag:                 0.1.0.0
+  tag:                 0.1.0.1
 
 library
   hs-source-dirs:      src
