@@ -9,8 +9,8 @@ module Morph.Migrator
 
 import Control.Monad
 
+import Data.Function
 import Data.List
-import Data.Maybe
 import Data.Monoid
 import Data.String
 
@@ -19,7 +19,6 @@ import System.FilePath
 import System.IO
 
 import Database.PostgreSQL.Simple
-import Database.PostgreSQL.Simple.FromRow
 
 -- | A migration can either be read from file and contain both sides or from the
 -- database and contain only the down side.
@@ -112,10 +111,11 @@ migrate conn dir = do
       toRollbackIdentifiers = doneIdentifiers \\ goalIdentifiers
       toDoIdentifiers       = goalIdentifiers \\ doneIdentifiers
 
-      toRollback = filter ((`elem` toRollbackIdentifiers) . migrationIdentifier)
-                          doneMigrations
-      toDo       = filter ((`elem` toDoIdentifiers)       . migrationIdentifier)
-                          goalMigrations
+      toRollback = sortBy (flip (compare `on` migrationIdentifier)) $
+        filter ((`elem` toRollbackIdentifiers) . migrationIdentifier)
+               doneMigrations
+      toDo = filter ((`elem` toDoIdentifiers) . migrationIdentifier)
+                    goalMigrations
 
   withTransaction conn $ do
     forM_ toRollback $ rollbackMigration conn
