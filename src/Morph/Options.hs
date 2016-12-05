@@ -13,6 +13,7 @@ data Options = Options
   , optsKeysPath            :: [T.Text]
   , optsMigrationsDirectory :: FilePath
   , optsJSONConfig          :: Bool
+  , optsTransaction         :: Bool
   }
 
 optionsParser :: Parser Options
@@ -29,6 +30,8 @@ optionsParser = Options
                  <> help "Path to the directory containing migrations.")
   <*> flag False True (short 'j' <> long "json"
                        <> help "Read config file as JSON.")
+  <*> flag True False (long "no-transaction"
+                       <> help "Do not run migrations in a SQL transaction. ")
 
 getOptions :: IO Options
 getOptions = execParser $ info (helper <*> optionsParser) $

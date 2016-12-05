@@ -98,8 +98,8 @@ doMigration conn migration = do
   void $ execute conn "INSERT INTO migrations (id, rollback_sql) VALUES (?, ?)"
                  (migrationIdentifier migration, down)
 
-migrate :: Connection -> FilePath -> IO ()
-migrate conn dir = do
+migrate :: Bool -> Connection -> FilePath -> IO ()
+migrate inTransaction conn dir = do
   createMigrationTable conn
 
   doneMigrations <- listDone  conn
@@ -117,6 +117,6 @@ migrate conn dir = do
       toDo = filter ((`elem` toDoIdentifiers) . migrationIdentifier)
                     goalMigrations
 
-  withTransaction conn $ do
+  (if inTransaction then withTransaction conn else id) $ do
     forM_ toRollback $ rollbackMigration conn
     forM_ toDo       $ doMigration       conn

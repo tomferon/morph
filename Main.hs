@@ -7,4 +7,4 @@ main = do
   opts   <- getOptions
   config <- readConfigOrDie opts
   withConnection config $ \conn -> do
-    migrate conn $ optsMigrationsDirectory opts
+    migrate (optsTransaction opts) conn (optsMigrationsDirectory opts)
