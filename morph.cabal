@@ -29,8 +29,8 @@ library
                        Morph.Migrator
                        Morph.Options
 
-  build-depends:       base >=4.8 && <4.11
-                     , optparse-applicative
+  build-depends:       base >=4.8 && <4.9
+                     , optparse-applicative ==0.12.*
                      , aeson
                      , yaml
                      , postgresql-simple
