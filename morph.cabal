@@ -2,7 +2,7 @@
 --  see http://haskell.org/cabal/users-guide/
 
 name:                  morph
-version:               0.1.1.1
+version:               0.1.1.2
 synopsis:              A simple database migrator for PostgreSQL
 description:           Morph is a tool to migrate your PostgreSQL databases
                        safely which supports rollbacks.
@@ -16,7 +16,7 @@ cabal-version:         >=1.10
 source-repository head
   type:                darcs
   location:            http://darcs.redspline.com/morph
-  tag:                 0.1.1.1
+  tag:                 0.1.1.2
 
 library
   hs-source-dirs:      src
@@ -29,8 +29,8 @@ library
                        Morph.Migrator
                        Morph.Options
 
-  build-depends:       base >=4.8 && <4.9
-                     , optparse-applicative ==0.12.*
+  build-depends:       base >=4.8 && <4.11
+                     , optparse-applicative
                      , aeson
                      , yaml
                      , postgresql-simple
