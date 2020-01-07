@@ -8,6 +8,7 @@ import           Control.Exception
 import           Data.Maybe
 import qualified Data.Aeson                 as J
 import qualified Data.Aeson.Types           as J hiding (Options)
+import qualified Data.Bifunctor             as B
 import qualified Data.Yaml                  as Y
 import qualified Data.ByteString.Lazy.Char8 as BSL
 import qualified Data.Text                  as T
@@ -59,7 +60,7 @@ readConfigOrDie opts = do
             val <- J.eitherDecode contents
             J.parseEither (parseJSONConfig (optsKeysPath opts)) val
         | otherwise = do
-            val <- Y.decodeEither $ BSL.toStrict contents
+            val <- B.first show . Y.decodeEither' . BSL.toStrict $ contents
             Y.parseEither (parseYAMLConfig (optsKeysPath opts)) val
 
   case eConfig of
