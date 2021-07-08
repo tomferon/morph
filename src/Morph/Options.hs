@@ -1,35 +1,33 @@
 module Morph.Options
   ( Options(..)
   , getOptions
+  , withConnection
   ) where
 
+import           Control.Exception (bracket)
+
 import           Data.Monoid
+import qualified Data.ByteString as BS
 import qualified Data.Text as T
+
+import           Database.PostgreSQL.Simple
 
 import           Options.Applicative
 
 data Options = Options
-  { optsConfigFile          :: Maybe FilePath
-  , optsKeysPath            :: [T.Text]
+  { optsConnectionString    :: BS.ByteString
   , optsMigrationsDirectory :: FilePath
-  , optsJSONConfig          :: Bool
   , optsTransaction         :: Bool
   }
 
 optionsParser :: Parser Options
 optionsParser = Options
-  <$> option (Just <$> str)
-             (short 'c' <> long "config" <> metavar "PATH"
-              <> value Nothing <> help "Path to the config file.")
-  <*> option ((T.splitOn "." . T.pack) <$> str)
-             (short 'p' <> long "path" <> metavar "KEY1[.KEY2[...]]"
-              <> value [] <> help "The keys to traverse in the JSON to find\
-                                  \ the database connection info.")
+  <$> option str
+             (short 'c' <> long "connection" <> metavar "CONNECTION_STRING"
+              <> help "Libpq connection string.")
   <*> strOption (short 'd' <> long "dir" <> metavar "PATH"
                  <> showDefault <> value "migrations"
                  <> help "Path to the directory containing migrations.")
-  <*> flag False True (short 'j' <> long "json"
-                       <> help "Read config file as JSON.")
   <*> flag True False (long "no-transaction"
                        <> help "Do not run migrations in a SQL transaction. ")
 
@@ -38,3 +36,12 @@ getOptions = execParser $ info (helper <*> optionsParser) $
   fullDesc
   <> progDesc "Migrator for PostgreSQL databases with support for rollbacks"
   <> footer "This program is licensed under the BSD-3 license."
+
+createConn :: Options -> IO Connection
+createConn = connectPostgreSQL . optsConnectionString
+
+destroyConn :: Connection -> IO ()
+destroyConn = close
+
+withConnection :: Options -> (Connection -> IO a) -> IO a
+withConnection options f = bracket (createConn options) destroyConn f

@@ -1,7 +1,0 @@
-{
-  "user": "_postgresql",
-  "password": "",
-  "host": "127.0.0.1",
-  "port": 5432,
-  "name": "morph"
-}
