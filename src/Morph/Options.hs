@@ -5,31 +5,35 @@ module Morph.Options
   ) where
 
 import           Control.Exception (bracket)
+import           System.Environment (getEnv)
 
 import           Data.Monoid
-import qualified Data.ByteString as BS
-import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as BS
 
 import           Database.PostgreSQL.Simple
 
 import           Options.Applicative
 
 data Options = Options
-  { optsConnectionString    :: BS.ByteString
+  { optsConnectionString    :: Maybe BS.ByteString
   , optsMigrationsDirectory :: FilePath
   , optsTransaction         :: Bool
   }
 
 optionsParser :: Parser Options
 optionsParser = Options
-  <$> option str
-             (short 'c' <> long "connection" <> metavar "CONNECTION_STRING"
-              <> help "Libpq connection string.")
-  <*> strOption (short 'd' <> long "dir" <> metavar "PATH"
-                 <> showDefault <> value "migrations"
-                 <> help "Path to the directory containing migrations.")
-  <*> flag True False (long "no-transaction"
-                       <> help "Do not run migrations in a SQL transaction. ")
+  <$> option (Just <$> str)
+        (short 'c' <> long "connection"
+          <> metavar "DATABASE_CONNECTION_STRING"
+          <> help "Libpq connection string. Read from environment variable otherwise."
+          <> value Nothing)
+  <*> strOption
+        (short 'd' <> long "dir" <> metavar "PATH"
+          <> showDefault <> value "migrations"
+          <> help "Path to the directory containing migrations.")
+  <*> flag True False
+        (long "no-transaction"
+          <> help "Do not run migrations in a SQL transaction.")
 
 getOptions :: IO Options
 getOptions = execParser $ info (helper <*> optionsParser) $
@@ -38,7 +42,11 @@ getOptions = execParser $ info (helper <*> optionsParser) $
   <> footer "This program is licensed under the BSD-3 license."
 
 createConn :: Options -> IO Connection
-createConn = connectPostgreSQL . optsConnectionString
+createConn opts = do
+  connString <- case optsConnectionString opts of
+    Nothing -> BS.pack <$> getEnv "DATABASE_CONNECTION_STRING"
+    Just cs -> pure cs
+  connectPostgreSQL connString
 
 destroyConn :: Connection -> IO ()
 destroyConn = close
